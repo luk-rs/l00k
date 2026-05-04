@@ -1,5 +1,16 @@
 # Changelog
 
+## v0.3.1 (2026-05-04)
+
+### Fixes
+- fix: filter bmls during consecutive aths (a65be76)
+- fix: anchor btc event labels below bars (2129602)
+
+### Other
+- fix: filter bmls during consecutive aths (a65be76)
+- fix: anchor btc event labels below bars (2129602)
+- chore: update artifacts for v0.3.0 [skip ci] (31b9355)
+
 ## v0.3.0 (2026-05-04)
 
 ### Features
