@@ -1,0 +1,109 @@
+name: Publish l00k
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "src/**"
+      - "scripts/**"
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Determine next version
+        id: version
+        run: |
+          # Get latest semver tag (fallback to v0.0.0 if none exist)
+          LATEST_TAG=$(git tag --sort=-version:refname | head -n1)
+          if [ -z "$LATEST_TAG" ]; then
+            LATEST_TAG="v0.0.0"
+            RANGE="HEAD"
+          else
+            RANGE="${LATEST_TAG}..HEAD"
+          fi
+
+          CURRENT=${LATEST_TAG#v}
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$CURRENT"
+
+          # Analyse conventional commits since last tag
+          COMMITS=$(git log "$RANGE" --pretty="%s" --no-merges 2>/dev/null || true)
+
+          BUMP="patch"
+          if echo "$COMMITS" | grep -qE "^feat(\(.+\))?!:|BREAKING CHANGE"; then
+            BUMP="major"
+          elif echo "$COMMITS" | grep -qE "^feat(\(.+\))?:"; then
+            BUMP="minor"
+          fi
+
+          case $BUMP in
+            major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
+            minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
+            patch) PATCH=$((PATCH + 1)) ;;
+          esac
+
+          VERSION="${MAJOR}.${MINOR}.${PATCH}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+          echo "bump=$BUMP" >> "$GITHUB_OUTPUT"
+          echo "→ v${VERSION} ($BUMP bump)"
+
+      - name: Build unified script
+        run: |
+          chmod +x scripts/build.sh
+          scripts/build.sh "${{ steps.version.outputs.version }}" "${{ github.sha }}"
+
+      - name: Publish to Gist
+        env:
+          GH_TOKEN: ${{ secrets.GIST_TOKEN }}
+        run: |
+          GIST_ID=""
+          if [ -f .gist_id ]; then
+            GIST_ID=$(cat .gist_id | tr -d '[:space:]')
+          fi
+
+          CONTENT=$(cat dist/l00k.pine)
+
+          if [ -z "$GIST_ID" ]; then
+            echo "Creating new gist..."
+            GIST_ID=$(
+              jq -n --arg c "$CONTENT" \
+                '{"public":true,"description":"l00k – TradingView Pine Script v6 indicator","files":{"l00k.pine":{"content":$c}}}' \
+              | gh api --method POST /gists --input - -q '.id'
+            )
+            echo "$GIST_ID" > .gist_id
+            echo "✓ Created gist: https://gist.github.com/$GIST_ID"
+          else
+            echo "Updating gist $GIST_ID..."
+            jq -n --arg c "$CONTENT" \
+              '{"files":{"l00k.pine":{"content":$c}}}' \
+            | gh api --method PATCH "/gists/$GIST_ID" --input - > /dev/null
+            echo "✓ Updated gist: https://gist.github.com/$GIST_ID"
+          fi
+
+      - name: Tag release
+        run: |
+          git tag "${{ steps.version.outputs.tag }}"
+          git push origin "${{ steps.version.outputs.tag }}"
+
+      - name: Generate changelog
+        run: |
+          chmod +x scripts/changelog.sh
+          scripts/changelog.sh
+
+      - name: Commit artifacts
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .gist_id CHANGELOG.md
+          git diff --staged --quiet || git commit -m "chore: update artifacts for v${{ steps.version.outputs.version }} [skip ci]"
+          git push

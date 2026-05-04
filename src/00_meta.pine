@@ -1,0 +1,2 @@
+//@version=6
+indicator("l00k", overlay = true)
