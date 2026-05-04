@@ -66,6 +66,7 @@ f_l00kUpdateVerticalLabel(
                  y = labelY,
                  text = labelText,
                  xloc = xloc.bar_time,
+                 yloc = yloc.belowbar,
                  style = label.style_label_up,
                  color = labelColor,
                  textcolor = labelTextColor,
@@ -74,9 +75,11 @@ f_l00kUpdateVerticalLabel(
         else
             label.set_x(result, labelTime)
             label.set_y(result, labelY)
+            label.set_yloc(result, yloc.belowbar)
             label.set_text(result, labelText)
             label.set_color(result, labelColor)
             label.set_textcolor(result, labelTextColor)
+            label.set_style(result, label.style_label_up)
     else
         if not na(result)
             label.delete(result)
