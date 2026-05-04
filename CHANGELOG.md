@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.3.2 (2026-05-04)
+
+### Fixes
+- fix: place btc event labels near visible bottom (64807c2)
+
+### Other
+- fix: place btc event labels near visible bottom (64807c2)
+- chore: update artifacts for v0.3.1 [skip ci] (a90dc2f)
+
 ## v0.3.1 (2026-05-04)
 
 ### Fixes
