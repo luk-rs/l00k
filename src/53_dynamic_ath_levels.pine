@@ -1,0 +1,183 @@
+// Dynamic ATH Horizontal Levels
+
+l00kDynamicAthGroup = "Dynamic ATH Levels"
+
+l00kShowDynamicAthLevels = input.bool(true, "Show Dynamic ATH Levels", group = l00kDynamicAthGroup)
+l00kShowDynamicAthLabels = input.bool(true, "Show Dynamic ATH Labels", group = l00kDynamicAthGroup)
+
+l00kAthDetectionMode = input.string(
+     "Pivot ATHs",
+     "ATH Detection Mode",
+     options = ["Pivot ATHs", "Every New ATH"],
+     group = l00kDynamicAthGroup
+)
+
+l00kAthPivotLeft = input.int(10, "Pivot Left Bars", minval = 1, group = l00kDynamicAthGroup)
+l00kAthPivotRight = input.int(10, "Pivot Right Bars", minval = 1, group = l00kDynamicAthGroup)
+
+l00kMinAthDistancePct = input.float(
+     5.0,
+     "Minimum Distance Between ATH Levels %",
+     minval = 0.0,
+     step = 0.5,
+     group = l00kDynamicAthGroup
+)
+
+l00kMaxDynamicAthLevels = input.int(10, "Max Dynamic ATH Levels", minval = 1, maxval = 100, group = l00kDynamicAthGroup)
+l00kDynamicAthLineWidth = input.int(2, "Dynamic ATH Line Width", minval = 1, maxval = 5, group = l00kDynamicAthGroup)
+
+l00kDynamicAthColor = color.new(color.aqua, 0)
+
+var float l00kRunningAth = na
+var float l00kLastPlottedAth = na
+
+var line[] l00kDynamicAthLines = array.new_line()
+var label[] l00kDynamicAthLabels = array.new_label()
+var int[] l00kDynamicAthTimes = array.new_int()
+var float[] l00kDynamicAthPrices = array.new_float()
+var string[] l00kDynamicAthTexts = array.new_string()
+
+l00kRunningAth := na(l00kRunningAth[1]) ? high : math.max(l00kRunningAth[1], high)
+l00kPivotHigh = ta.pivothigh(high, l00kAthPivotLeft, l00kAthPivotRight)
+
+f_l00kCanPlotDynamicAth(float athPrice) =>
+    na(l00kLastPlottedAth) or athPrice >= l00kLastPlottedAth * (1 + l00kMinAthDistancePct / 100)
+
+f_l00kNewDynamicAthLabel(int athTime, float athPrice, string athText) =>
+    label.new(
+         x = athTime,
+         y = athPrice,
+         text = athText,
+         xloc = xloc.bar_time,
+         style = label.style_label_right,
+         color = l00kDynamicAthColor,
+         textcolor = color.black,
+         size = size.small
+    )
+
+f_l00kAddDynamicAthLevel(int athTime, float athPrice, string athText) =>
+    line newLine = line.new(
+         x1 = athTime,
+         y1 = athPrice,
+         x2 = athTime + 1,
+         y2 = athPrice,
+         xloc = xloc.bar_time,
+         extend = extend.right,
+         color = l00kDynamicAthColor,
+         style = line.style_solid,
+         width = l00kDynamicAthLineWidth
+    )
+
+    array.push(l00kDynamicAthLines, newLine)
+
+    label newLabel = na
+
+    if l00kShowDynamicAthLabels
+        newLabel := f_l00kNewDynamicAthLabel(athTime, athPrice, athText)
+
+    array.push(l00kDynamicAthLabels, newLabel)
+    array.push(l00kDynamicAthTimes, athTime)
+    array.push(l00kDynamicAthPrices, athPrice)
+    array.push(l00kDynamicAthTexts, athText)
+
+    if array.size(l00kDynamicAthLines) > l00kMaxDynamicAthLevels
+        line oldLine = array.shift(l00kDynamicAthLines)
+        line.delete(oldLine)
+
+        label oldLabel = array.shift(l00kDynamicAthLabels)
+        if not na(oldLabel)
+            label.delete(oldLabel)
+
+        array.shift(l00kDynamicAthTimes)
+        array.shift(l00kDynamicAthPrices)
+        array.shift(l00kDynamicAthTexts)
+
+    true
+
+f_l00kPruneDynamicAthLevels() =>
+    while array.size(l00kDynamicAthLines) > l00kMaxDynamicAthLevels
+        line oldLine = array.shift(l00kDynamicAthLines)
+        line.delete(oldLine)
+
+        label oldLabel = array.shift(l00kDynamicAthLabels)
+        if not na(oldLabel)
+            label.delete(oldLabel)
+
+        array.shift(l00kDynamicAthTimes)
+        array.shift(l00kDynamicAthPrices)
+        array.shift(l00kDynamicAthTexts)
+
+    true
+
+f_l00kClearDynamicAthLevels() =>
+    if array.size(l00kDynamicAthLines) > 0
+        for i = 0 to array.size(l00kDynamicAthLines) - 1
+            line.delete(array.get(l00kDynamicAthLines, i))
+
+            label oldLabel = array.get(l00kDynamicAthLabels, i)
+            if not na(oldLabel)
+                label.delete(oldLabel)
+
+    array.clear(l00kDynamicAthLines)
+    array.clear(l00kDynamicAthLabels)
+    array.clear(l00kDynamicAthTimes)
+    array.clear(l00kDynamicAthPrices)
+    array.clear(l00kDynamicAthTexts)
+
+    true
+
+f_l00kSyncDynamicAthLabels() =>
+    if array.size(l00kDynamicAthLabels) > 0
+        for i = 0 to array.size(l00kDynamicAthLabels) - 1
+            label existingLabel = array.get(l00kDynamicAthLabels, i)
+
+            if l00kShowDynamicAthLabels
+                if na(existingLabel)
+                    label recreatedLabel = f_l00kNewDynamicAthLabel(
+                         array.get(l00kDynamicAthTimes, i),
+                         array.get(l00kDynamicAthPrices, i),
+                         array.get(l00kDynamicAthTexts, i)
+                    )
+                    array.set(l00kDynamicAthLabels, i, recreatedLabel)
+            else
+                if not na(existingLabel)
+                    label.delete(existingLabel)
+                    array.set(l00kDynamicAthLabels, i, na)
+
+    true
+
+if not l00kShowDynamicAthLevels and array.size(l00kDynamicAthLines) > 0
+    f_l00kClearDynamicAthLevels()
+    l00kLastPlottedAth := na
+
+if l00kShowDynamicAthLevels
+    f_l00kPruneDynamicAthLevels()
+    f_l00kSyncDynamicAthLabels()
+
+    if l00kAthDetectionMode == "Every New ATH"
+        bool l00kIsNewAth = not na(l00kRunningAth[1]) and high > l00kRunningAth[1]
+
+        if l00kIsNewAth and f_l00kCanPlotDynamicAth(high)
+            f_l00kAddDynamicAthLevel(
+                 time,
+                 high,
+                 "ATH\n" + str.tostring(high, format.mintick)
+            )
+
+            l00kLastPlottedAth := high
+
+    if l00kAthDetectionMode == "Pivot ATHs"
+        bool l00kIsPivotAth =
+             not na(l00kPivotHigh) and
+             l00kPivotHigh >= l00kRunningAth[l00kAthPivotRight]
+
+        if l00kIsPivotAth and f_l00kCanPlotDynamicAth(l00kPivotHigh)
+            int l00kPivotTime = time[l00kAthPivotRight]
+
+            f_l00kAddDynamicAthLevel(
+                 l00kPivotTime,
+                 l00kPivotHigh,
+                 "ATH\n" + str.tostring(l00kPivotHigh, format.mintick)
+            )
+
+            l00kLastPlottedAth := l00kPivotHigh

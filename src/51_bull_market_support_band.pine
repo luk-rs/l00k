@@ -1,0 +1,45 @@
+// Bull Market Support Band
+
+l00kBmsbGroup = "Bull Market Support Band"
+
+l00kShowBmsb = input.bool(true, "Show Bull Market Support Band", group = l00kBmsbGroup)
+l00kBmsbTimeframe = input.timeframe("W", "Band Timeframe", group = l00kBmsbGroup)
+l00kBmsbSmaLen = input.int(20, "Weekly SMA Length", minval = 1, group = l00kBmsbGroup)
+l00kBmsbEmaLen = input.int(21, "Weekly EMA Length", minval = 1, group = l00kBmsbGroup)
+
+l00kBmsbSma = request.security(
+     syminfo.tickerid,
+     l00kBmsbTimeframe,
+     ta.sma(close, l00kBmsbSmaLen),
+     barmerge.gaps_off,
+     barmerge.lookahead_off
+)
+
+l00kBmsbEma = request.security(
+     syminfo.tickerid,
+     l00kBmsbTimeframe,
+     ta.ema(close, l00kBmsbEmaLen),
+     barmerge.gaps_off,
+     barmerge.lookahead_off
+)
+
+l00kBmsbSmaPlot = plot(
+     l00kShowBmsb ? l00kBmsbSma : na,
+     title = "BMSB SMA",
+     color = color.new(color.green, 0),
+     linewidth = 2
+)
+
+l00kBmsbEmaPlot = plot(
+     l00kShowBmsb ? l00kBmsbEma : na,
+     title = "BMSB EMA",
+     color = color.new(color.red, 0),
+     linewidth = 2
+)
+
+fill(
+     l00kBmsbSmaPlot,
+     l00kBmsbEmaPlot,
+     title = "Bull Market Support Band",
+     color = l00kShowBmsb ? color.new(color.green, 85) : na
+)

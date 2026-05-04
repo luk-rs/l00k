@@ -1,0 +1,37 @@
+// Moving Averages
+
+l00kMaGroup = "Moving Averages"
+
+l00kShowMa20 = input.bool(true, "Show 20 MA", group = l00kMaGroup)
+l00kShowMa50 = input.bool(true, "Show 50 MA", group = l00kMaGroup)
+
+l00kMaType = input.string(
+     "SMA",
+     "MA Type",
+     options = ["SMA", "EMA"],
+     group = l00kMaGroup
+)
+
+l00kMaSource = input.source(close, "MA Source", group = l00kMaGroup)
+
+f_l00kMa(series float source, int length, string maType) =>
+    switch maType
+        "EMA" => ta.ema(source, length)
+        => ta.sma(source, length)
+
+l00kMa20 = f_l00kMa(l00kMaSource, 20, l00kMaType)
+l00kMa50 = f_l00kMa(l00kMaSource, 50, l00kMaType)
+
+plot(
+     l00kShowMa20 ? l00kMa20 : na,
+     title = "20 MA",
+     color = color.new(color.orange, 0),
+     linewidth = 2
+)
+
+plot(
+     l00kShowMa50 ? l00kMa50 : na,
+     title = "50 MA",
+     color = color.new(color.blue, 0),
+     linewidth = 2
+)

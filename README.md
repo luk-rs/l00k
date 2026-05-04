@@ -5,7 +5,8 @@ TradingView Pine Script v6 custom indicator — modular source, unified build.
 ## How it works
 
 Individual indicators, strategies, and utilities live as separate `.pine` files
-in `src/`. On every push to `main`, CI:
+in `src/`. Indicator and strategy features are usually self-contained vertical
+slices in the `50-79` filename range. On every push to `main`, CI:
 
 1. Determines the next [semantic version](https://semver.org) from
    [conventional commits](https://www.conventionalcommits.org)
@@ -21,10 +22,10 @@ l00k/
 ├── src/                  # Pine Script source modules
 │   ├── 00_meta.pine      # //@version=6 + indicator() declaration
 │   ├── 10_types.pine     # type definitions & constants
-│   ├── 20_inputs.pine    # user inputs
-│   ├── 30_utils.pine     # utility functions
-│   ├── 50_*.pine         # indicator / strategy logic
-│   └── 90_plots.pine     # plot & visual output
+│   ├── 20_inputs.pine    # shared user inputs
+│   ├── 30_utils.pine     # shared utility functions
+│   ├── 50_*.pine         # indicator / strategy vertical slices
+│   └── 90_plots.pine     # shared plot & visual output
 ├── scripts/
 │   ├── build.sh          # concatenate src → dist/l00k.pine
 │   └── changelog.sh      # generate CHANGELOG.md from tags

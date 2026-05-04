@@ -1,2 +1,8 @@
 //@version=6
-indicator("l00k", overlay = true)
+indicator(
+     title = "l00k",
+     shorttitle = "l00k",
+     overlay = true,
+     max_lines_count = 300,
+     max_labels_count = 300
+)
