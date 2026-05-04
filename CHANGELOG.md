@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.2.1 (2026-05-04)
+
+### Fixes
+- fix: add next bitcoin halving marker (55ac1f0)
+
+### Other
+- fix: add next bitcoin halving marker (55ac1f0)
+- chore: update artifacts for v0.2.0 [skip ci] (c0bc40d)
+
 ## v0.2.0 (2026-05-04)
 
 ### Features
