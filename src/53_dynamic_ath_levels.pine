@@ -49,6 +49,15 @@ l00kMinBmlDistancePct = input.float(
      group = l00kDynamicBmlGroup
 )
 
+l00kMinBmlDrawdownFromAthPct = input.float(
+     50.0,
+     "Minimum Drawdown From ATH %",
+     minval = 0.0,
+     maxval = 100.0,
+     step = 1.0,
+     group = l00kDynamicBmlGroup
+)
+
 l00kMaxDynamicBmlLevels = input.int(10, "Max BML Levels", minval = 1, maxval = 100, group = l00kDynamicBmlGroup)
 l00kDynamicBmlLineWidth = input.int(2, "BML Line Width", minval = 1, maxval = 5, group = l00kDynamicBmlGroup)
 
@@ -125,6 +134,9 @@ f_l00kCanPlotDynamicAth(float athPrice) =>
 
 f_l00kCanPlotDynamicBml(float bmlPrice) =>
     na(l00kLastCycleBml) or bmlPrice <= l00kLastCycleBml * (1 - l00kMinBmlDistancePct / 100)
+
+f_l00kHasBearMarketDrawdown(float bmlPrice) =>
+    not na(l00kLastPlottedAth) and bmlPrice <= l00kLastPlottedAth * (1 - l00kMinBmlDrawdownFromAthPct / 100)
 
 f_l00kNewDynamicAthLabel(int athTime, float athPrice, string athText) =>
     label.new(
@@ -374,7 +386,7 @@ if l00kShowDynamicBmlLevels
              not na(l00kRunningCycleLow[1]) and
              low < l00kRunningCycleLow[1]
 
-        if l00kIsNewCycleLow and f_l00kCanPlotDynamicBml(low)
+        if l00kIsNewCycleLow and f_l00kHasBearMarketDrawdown(low) and f_l00kCanPlotDynamicBml(low)
             int l00kBmlBarsFromAth = f_l00kBarsBetween(bar_index, l00kLastPlottedAthBarIndex)
             int l00kBmlBarsFromHalving = f_l00kBarsBetween(bar_index, l00kLastHalvingBarIndex)
 
@@ -396,7 +408,7 @@ if l00kShowDynamicBmlLevels
              l00kBmlPivotBarIndex > l00kLastPlottedAthBarIndex and
              l00kPivotLow <= l00kRunningCycleLow[l00kBmlPivotRight]
 
-        if l00kIsPivotBml and f_l00kCanPlotDynamicBml(l00kPivotLow)
+        if l00kIsPivotBml and f_l00kHasBearMarketDrawdown(l00kPivotLow) and f_l00kCanPlotDynamicBml(l00kPivotLow)
             int l00kBmlPivotTime = time[l00kBmlPivotRight]
             int l00kBmlBarsFromAth = f_l00kBarsBetween(l00kBmlPivotBarIndex, l00kLastPlottedAthBarIndex)
             int l00kBmlBarsFromHalving = f_l00kBarsBetween(l00kBmlPivotBarIndex, l00kLastHalvingBarIndex[l00kBmlPivotRight])
