@@ -66,7 +66,7 @@ f_l00kUpdateVerticalLabel(
                  y = labelY,
                  text = labelText,
                  xloc = xloc.bar_time,
-                 yloc = yloc.belowbar,
+                 yloc = yloc.price,
                  style = label.style_label_up,
                  color = labelColor,
                  textcolor = labelTextColor,
@@ -75,7 +75,7 @@ f_l00kUpdateVerticalLabel(
         else
             label.set_x(result, labelTime)
             label.set_y(result, labelY)
-            label.set_yloc(result, yloc.belowbar)
+            label.set_yloc(result, yloc.price)
             label.set_text(result, labelText)
             label.set_color(result, labelColor)
             label.set_textcolor(result, labelTextColor)
@@ -95,7 +95,19 @@ l00kBtcHalvingLabelColor = color.new(color.purple, 50)
 l00kBtcAthLineColor = color.new(color.yellow, 50)
 l00kBtcAthLabelColor = color.new(color.yellow, 50)
 
-l00kBtcEventLabelY = ta.lowest(low, 300)
+l00kIsVisibleBar = time >= chart.left_visible_bar_time and time <= chart.right_visible_bar_time
+
+var float l00kVisibleLow = na
+var float l00kVisibleHigh = na
+
+if time == chart.left_visible_bar_time
+    l00kVisibleLow := low
+    l00kVisibleHigh := high
+else if l00kIsVisibleBar
+    l00kVisibleLow := na(l00kVisibleLow) ? low : math.min(l00kVisibleLow, low)
+    l00kVisibleHigh := na(l00kVisibleHigh) ? high : math.max(l00kVisibleHigh, high)
+
+l00kBtcEventLabelY = na(l00kVisibleLow) or na(l00kVisibleHigh) ? ta.lowest(low, 300) : l00kVisibleLow - math.max((l00kVisibleHigh - l00kVisibleLow) * 0.04, syminfo.mintick * 10)
 
 int l00kHalving2012 = timestamp("UTC", 2012, 11, 28, 0, 0)
 int l00kHalving2016 = timestamp("UTC", 2016, 7, 9, 0, 0)
