@@ -1,4 +1,4 @@
-// Dynamic ATH Horizontal Levels
+// Dynamic ATH and Bear Market Low Horizontal Levels
 
 l00kDynamicAthGroup = "Dynamic ATH Levels"
 
@@ -26,10 +26,42 @@ l00kMinAthDistancePct = input.float(
 l00kMaxDynamicAthLevels = input.int(10, "Max Dynamic ATH Levels", minval = 1, maxval = 100, group = l00kDynamicAthGroup)
 l00kDynamicAthLineWidth = input.int(2, "Dynamic ATH Line Width", minval = 1, maxval = 5, group = l00kDynamicAthGroup)
 
+l00kDynamicBmlGroup = "Bear Market Lows"
+
+l00kShowDynamicBmlLevels = input.bool(true, "Show Bear Market Low Levels", group = l00kDynamicBmlGroup)
+l00kShowDynamicBmlLabels = input.bool(true, "Show Bear Market Low Labels", group = l00kDynamicBmlGroup)
+
+l00kBmlDetectionMode = input.string(
+     "Pivot BMLs",
+     "BML Detection Mode",
+     options = ["Pivot BMLs", "Every New Cycle Low"],
+     group = l00kDynamicBmlGroup
+)
+
+l00kBmlPivotLeft = input.int(10, "Pivot Left Bars", minval = 1, group = l00kDynamicBmlGroup)
+l00kBmlPivotRight = input.int(10, "Pivot Right Bars", minval = 1, group = l00kDynamicBmlGroup)
+
+l00kMinBmlDistancePct = input.float(
+     5.0,
+     "Minimum Distance Between BML Levels %",
+     minval = 0.0,
+     step = 0.5,
+     group = l00kDynamicBmlGroup
+)
+
+l00kMaxDynamicBmlLevels = input.int(10, "Max BML Levels", minval = 1, maxval = 100, group = l00kDynamicBmlGroup)
+l00kDynamicBmlLineWidth = input.int(2, "BML Line Width", minval = 1, maxval = 5, group = l00kDynamicBmlGroup)
+
 l00kDynamicAthColor = color.new(color.aqua, 0)
+l00kDynamicBmlColor = color.new(color.fuchsia, 0)
 
 var float l00kRunningAth = na
 var float l00kLastPlottedAth = na
+var int l00kLastPlottedAthBarIndex = na
+var int l00kLastPlottedBmlBarIndex = na
+var float l00kLastCycleBml = na
+var float l00kRunningCycleLow = na
+var int l00kLastHalvingBarIndex = na
 
 var line[] l00kDynamicAthLines = array.new_line()
 var label[] l00kDynamicAthLabels = array.new_label()
@@ -37,11 +69,62 @@ var int[] l00kDynamicAthTimes = array.new_int()
 var float[] l00kDynamicAthPrices = array.new_float()
 var string[] l00kDynamicAthTexts = array.new_string()
 
+var line[] l00kDynamicBmlLines = array.new_line()
+var label[] l00kDynamicBmlLabels = array.new_label()
+var int[] l00kDynamicBmlTimes = array.new_int()
+var float[] l00kDynamicBmlPrices = array.new_float()
+var string[] l00kDynamicBmlTexts = array.new_string()
+
 l00kRunningAth := na(l00kRunningAth[1]) ? high : math.max(l00kRunningAth[1], high)
 l00kPivotHigh = ta.pivothigh(high, l00kAthPivotLeft, l00kAthPivotRight)
+l00kPivotLow = ta.pivotlow(low, l00kBmlPivotLeft, l00kBmlPivotRight)
+
+f_l00kCrossedTime(int eventTime) =>
+    time >= eventTime and (na(time[1]) or time[1] < eventTime)
+
+if f_l00kCrossedTime(l00kHalving2012)
+    l00kLastHalvingBarIndex := bar_index
+if f_l00kCrossedTime(l00kHalving2016)
+    l00kLastHalvingBarIndex := bar_index
+if f_l00kCrossedTime(l00kHalving2020)
+    l00kLastHalvingBarIndex := bar_index
+if f_l00kCrossedTime(l00kHalving2024)
+    l00kLastHalvingBarIndex := bar_index
+if f_l00kCrossedTime(l00kHalving2028Estimate)
+    l00kLastHalvingBarIndex := bar_index
+if f_l00kCrossedTime(l00kHalving2032Estimate)
+    l00kLastHalvingBarIndex := bar_index
+if f_l00kCrossedTime(l00kHalving2036Estimate)
+    l00kLastHalvingBarIndex := bar_index
+if f_l00kCrossedTime(l00kHalving2040Estimate)
+    l00kLastHalvingBarIndex := bar_index
+
+if not na(l00kLastPlottedAthBarIndex) and bar_index > l00kLastPlottedAthBarIndex
+    bool l00kNewAthAnchor = na(l00kLastPlottedAthBarIndex[1]) or l00kLastPlottedAthBarIndex != l00kLastPlottedAthBarIndex[1]
+    l00kRunningCycleLow := l00kNewAthAnchor or na(l00kRunningCycleLow[1]) ? low : math.min(l00kRunningCycleLow[1], low)
+else
+    l00kRunningCycleLow := na
+
+f_l00kBarsBetween(int currentBarIndex, int previousBarIndex) =>
+    int result = na
+    if not na(previousBarIndex)
+        result := currentBarIndex - previousBarIndex
+    result
+
+f_l00kFormatBars(int bars) =>
+    na(bars) ? "n/a" : str.tostring(bars) + " bars"
+
+f_l00kCycleLabelText(string levelType, float levelPrice, string cycleAnchorLabel, int cycleAnchorBars, int halvingBars) =>
+    levelType + "\n" +
+         str.tostring(levelPrice, format.mintick) + "\n" +
+         cycleAnchorLabel + ": " + f_l00kFormatBars(cycleAnchorBars) + "\n" +
+         "Prev halving: " + f_l00kFormatBars(halvingBars)
 
 f_l00kCanPlotDynamicAth(float athPrice) =>
     na(l00kLastPlottedAth) or athPrice >= l00kLastPlottedAth * (1 + l00kMinAthDistancePct / 100)
+
+f_l00kCanPlotDynamicBml(float bmlPrice) =>
+    na(l00kLastCycleBml) or bmlPrice <= l00kLastCycleBml * (1 - l00kMinBmlDistancePct / 100)
 
 f_l00kNewDynamicAthLabel(int athTime, float athPrice, string athText) =>
     label.new(
@@ -52,6 +135,18 @@ f_l00kNewDynamicAthLabel(int athTime, float athPrice, string athText) =>
          style = label.style_label_right,
          color = l00kDynamicAthColor,
          textcolor = color.black,
+         size = size.small
+    )
+
+f_l00kNewDynamicBmlLabel(int bmlTime, float bmlPrice, string bmlText) =>
+    label.new(
+         x = bmlTime,
+         y = bmlPrice,
+         text = bmlText,
+         xloc = xloc.bar_time,
+         style = label.style_label_right,
+         color = l00kDynamicBmlColor,
+         textcolor = color.white,
          size = size.small
     )
 
@@ -80,17 +175,32 @@ f_l00kAddDynamicAthLevel(int athTime, float athPrice, string athText) =>
     array.push(l00kDynamicAthPrices, athPrice)
     array.push(l00kDynamicAthTexts, athText)
 
-    if array.size(l00kDynamicAthLines) > l00kMaxDynamicAthLevels
-        line oldLine = array.shift(l00kDynamicAthLines)
-        line.delete(oldLine)
+    true
 
-        label oldLabel = array.shift(l00kDynamicAthLabels)
-        if not na(oldLabel)
-            label.delete(oldLabel)
+f_l00kAddDynamicBmlLevel(int bmlTime, float bmlPrice, string bmlText) =>
+    line newLine = line.new(
+         x1 = bmlTime,
+         y1 = bmlPrice,
+         x2 = bmlTime + 1,
+         y2 = bmlPrice,
+         xloc = xloc.bar_time,
+         extend = extend.right,
+         color = l00kDynamicBmlColor,
+         style = line.style_solid,
+         width = l00kDynamicBmlLineWidth
+    )
 
-        array.shift(l00kDynamicAthTimes)
-        array.shift(l00kDynamicAthPrices)
-        array.shift(l00kDynamicAthTexts)
+    array.push(l00kDynamicBmlLines, newLine)
+
+    label newLabel = na
+
+    if l00kShowDynamicBmlLabels
+        newLabel := f_l00kNewDynamicBmlLabel(bmlTime, bmlPrice, bmlText)
+
+    array.push(l00kDynamicBmlLabels, newLabel)
+    array.push(l00kDynamicBmlTimes, bmlTime)
+    array.push(l00kDynamicBmlPrices, bmlPrice)
+    array.push(l00kDynamicBmlTexts, bmlText)
 
     true
 
@@ -109,6 +219,21 @@ f_l00kPruneDynamicAthLevels() =>
 
     true
 
+f_l00kPruneDynamicBmlLevels() =>
+    while array.size(l00kDynamicBmlLines) > l00kMaxDynamicBmlLevels
+        line oldLine = array.shift(l00kDynamicBmlLines)
+        line.delete(oldLine)
+
+        label oldLabel = array.shift(l00kDynamicBmlLabels)
+        if not na(oldLabel)
+            label.delete(oldLabel)
+
+        array.shift(l00kDynamicBmlTimes)
+        array.shift(l00kDynamicBmlPrices)
+        array.shift(l00kDynamicBmlTexts)
+
+    true
+
 f_l00kClearDynamicAthLevels() =>
     if array.size(l00kDynamicAthLines) > 0
         for i = 0 to array.size(l00kDynamicAthLines) - 1
@@ -123,6 +248,23 @@ f_l00kClearDynamicAthLevels() =>
     array.clear(l00kDynamicAthTimes)
     array.clear(l00kDynamicAthPrices)
     array.clear(l00kDynamicAthTexts)
+
+    true
+
+f_l00kClearDynamicBmlLevels() =>
+    if array.size(l00kDynamicBmlLines) > 0
+        for i = 0 to array.size(l00kDynamicBmlLines) - 1
+            line.delete(array.get(l00kDynamicBmlLines, i))
+
+            label oldLabel = array.get(l00kDynamicBmlLabels, i)
+            if not na(oldLabel)
+                label.delete(oldLabel)
+
+    array.clear(l00kDynamicBmlLines)
+    array.clear(l00kDynamicBmlLabels)
+    array.clear(l00kDynamicBmlTimes)
+    array.clear(l00kDynamicBmlPrices)
+    array.clear(l00kDynamicBmlTexts)
 
     true
 
@@ -146,9 +288,36 @@ f_l00kSyncDynamicAthLabels() =>
 
     true
 
+f_l00kSyncDynamicBmlLabels() =>
+    if array.size(l00kDynamicBmlLabels) > 0
+        for i = 0 to array.size(l00kDynamicBmlLabels) - 1
+            label existingLabel = array.get(l00kDynamicBmlLabels, i)
+
+            if l00kShowDynamicBmlLabels
+                if na(existingLabel)
+                    label recreatedLabel = f_l00kNewDynamicBmlLabel(
+                         array.get(l00kDynamicBmlTimes, i),
+                         array.get(l00kDynamicBmlPrices, i),
+                         array.get(l00kDynamicBmlTexts, i)
+                    )
+                    array.set(l00kDynamicBmlLabels, i, recreatedLabel)
+            else
+                if not na(existingLabel)
+                    label.delete(existingLabel)
+                    array.set(l00kDynamicBmlLabels, i, na)
+
+    true
+
 if not l00kShowDynamicAthLevels and array.size(l00kDynamicAthLines) > 0
     f_l00kClearDynamicAthLevels()
     l00kLastPlottedAth := na
+    l00kLastPlottedAthBarIndex := na
+    l00kLastCycleBml := na
+
+if not l00kShowDynamicBmlLevels and array.size(l00kDynamicBmlLines) > 0
+    f_l00kClearDynamicBmlLevels()
+    l00kLastPlottedBmlBarIndex := na
+    l00kLastCycleBml := na
 
 if l00kShowDynamicAthLevels
     f_l00kPruneDynamicAthLevels()
@@ -158,13 +327,19 @@ if l00kShowDynamicAthLevels
         bool l00kIsNewAth = not na(l00kRunningAth[1]) and high > l00kRunningAth[1]
 
         if l00kIsNewAth and f_l00kCanPlotDynamicAth(high)
+            int l00kAthBarsFromBml = f_l00kBarsBetween(bar_index, l00kLastPlottedBmlBarIndex)
+            int l00kAthBarsFromHalving = f_l00kBarsBetween(bar_index, l00kLastHalvingBarIndex)
+
             f_l00kAddDynamicAthLevel(
                  time,
                  high,
-                 "ATH\n" + str.tostring(high, format.mintick)
+                 f_l00kCycleLabelText("ATH", high, "Prev BML", l00kAthBarsFromBml, l00kAthBarsFromHalving)
             )
 
             l00kLastPlottedAth := high
+            l00kLastPlottedAthBarIndex := bar_index
+            l00kLastCycleBml := na
+            l00kRunningCycleLow := na
 
     if l00kAthDetectionMode == "Pivot ATHs"
         bool l00kIsPivotAth =
@@ -173,11 +348,64 @@ if l00kShowDynamicAthLevels
 
         if l00kIsPivotAth and f_l00kCanPlotDynamicAth(l00kPivotHigh)
             int l00kPivotTime = time[l00kAthPivotRight]
+            int l00kPivotBarIndex = bar_index - l00kAthPivotRight
+            int l00kAthBarsFromBml = f_l00kBarsBetween(l00kPivotBarIndex, l00kLastPlottedBmlBarIndex)
+            int l00kAthBarsFromHalving = f_l00kBarsBetween(l00kPivotBarIndex, l00kLastHalvingBarIndex[l00kAthPivotRight])
 
             f_l00kAddDynamicAthLevel(
                  l00kPivotTime,
                  l00kPivotHigh,
-                 "ATH\n" + str.tostring(l00kPivotHigh, format.mintick)
+                 f_l00kCycleLabelText("ATH", l00kPivotHigh, "Prev BML", l00kAthBarsFromBml, l00kAthBarsFromHalving)
             )
 
             l00kLastPlottedAth := l00kPivotHigh
+            l00kLastPlottedAthBarIndex := l00kPivotBarIndex
+            l00kLastCycleBml := na
+            l00kRunningCycleLow := na
+
+if l00kShowDynamicBmlLevels
+    f_l00kPruneDynamicBmlLevels()
+    f_l00kSyncDynamicBmlLabels()
+
+    if l00kBmlDetectionMode == "Every New Cycle Low"
+        bool l00kIsNewCycleLow =
+             not na(l00kLastPlottedAthBarIndex) and
+             bar_index > l00kLastPlottedAthBarIndex and
+             not na(l00kRunningCycleLow[1]) and
+             low < l00kRunningCycleLow[1]
+
+        if l00kIsNewCycleLow and f_l00kCanPlotDynamicBml(low)
+            int l00kBmlBarsFromAth = f_l00kBarsBetween(bar_index, l00kLastPlottedAthBarIndex)
+            int l00kBmlBarsFromHalving = f_l00kBarsBetween(bar_index, l00kLastHalvingBarIndex)
+
+            f_l00kAddDynamicBmlLevel(
+                 time,
+                 low,
+                 f_l00kCycleLabelText("BML", low, "Prev ATH", l00kBmlBarsFromAth, l00kBmlBarsFromHalving)
+            )
+
+            l00kLastPlottedBmlBarIndex := bar_index
+            l00kLastCycleBml := low
+
+    if l00kBmlDetectionMode == "Pivot BMLs"
+        int l00kBmlPivotBarIndex = bar_index - l00kBmlPivotRight
+
+        bool l00kIsPivotBml =
+             not na(l00kPivotLow) and
+             not na(l00kLastPlottedAthBarIndex) and
+             l00kBmlPivotBarIndex > l00kLastPlottedAthBarIndex and
+             l00kPivotLow <= l00kRunningCycleLow[l00kBmlPivotRight]
+
+        if l00kIsPivotBml and f_l00kCanPlotDynamicBml(l00kPivotLow)
+            int l00kBmlPivotTime = time[l00kBmlPivotRight]
+            int l00kBmlBarsFromAth = f_l00kBarsBetween(l00kBmlPivotBarIndex, l00kLastPlottedAthBarIndex)
+            int l00kBmlBarsFromHalving = f_l00kBarsBetween(l00kBmlPivotBarIndex, l00kLastHalvingBarIndex[l00kBmlPivotRight])
+
+            f_l00kAddDynamicBmlLevel(
+                 l00kBmlPivotTime,
+                 l00kPivotLow,
+                 f_l00kCycleLabelText("BML", l00kPivotLow, "Prev ATH", l00kBmlBarsFromAth, l00kBmlBarsFromHalving)
+            )
+
+            l00kLastPlottedBmlBarIndex := l00kBmlPivotBarIndex
+            l00kLastCycleBml := l00kPivotLow
