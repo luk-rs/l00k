@@ -87,8 +87,10 @@ f_l00kUpdateVerticalLabel(
 l00kIsBtcChart = syminfo.basecurrency == "BTC"
 l00kCanShowBtcEvents = not l00kOnlyShowBtcEventsOnBtcCharts or l00kIsBtcChart
 
-l00kBtcHalvingColor = color.new(color.purple, 0)
-l00kBtcAthColor = color.new(color.yellow, 0)
+l00kBtcHalvingLineColor = color.new(color.purple, 50)
+l00kBtcHalvingLabelColor = color.new(color.purple, 0)
+l00kBtcAthLineColor = color.new(color.yellow, 50)
+l00kBtcAthLabelColor = color.new(color.yellow, 0)
 
 l00kBtcEventLabelY = ta.highest(high, 300)
 
@@ -96,6 +98,10 @@ int l00kHalving2012 = timestamp("UTC", 2012, 11, 28, 0, 0)
 int l00kHalving2016 = timestamp("UTC", 2016, 7, 9, 0, 0)
 int l00kHalving2020 = timestamp("UTC", 2020, 5, 11, 0, 0)
 int l00kHalving2024 = timestamp("UTC", 2024, 4, 20, 0, 0)
+int l00kHalving2028Estimate = timestamp("UTC", 2028, 4, 17, 0, 0)
+int l00kHalving2032Estimate = timestamp("UTC", 2032, 4, 17, 0, 0)
+int l00kHalving2036Estimate = timestamp("UTC", 2036, 4, 17, 0, 0)
+int l00kHalving2040Estimate = timestamp("UTC", 2040, 4, 17, 0, 0)
 
 int l00kBtcAth2013 = timestamp("UTC", 2013, 11, 30, 0, 0)
 int l00kBtcAth2017 = timestamp("UTC", 2017, 12, 16, 0, 0)
@@ -106,11 +112,13 @@ var line l00kH2012Line = na
 var line l00kH2016Line = na
 var line l00kH2020Line = na
 var line l00kH2024Line = na
+var line l00kHNextEstimateLine = na
 
 var label l00kH2012Label = na
 var label l00kH2016Label = na
 var label l00kH2020Label = na
 var label l00kH2024Label = na
+var label l00kHNextEstimateLabel = na
 
 var line l00kBtcAth2013Line = na
 var line l00kBtcAth2017Line = na
@@ -127,22 +135,37 @@ if barstate.islast
     bool l00kBtcAthsVisible = l00kShowBtcAthVerticals and l00kCanShowBtcEvents
     bool l00kBtcLabelsVisible = l00kShowBtcEventLabels and l00kCanShowBtcEvents
 
-    l00kH2012Line := f_l00kUpdateVerticalLine(l00kH2012Line, l00kHalving2012, l00kBtcHalvingColor, l00kBtcEventLineWidth, l00kHalvingsVisible)
-    l00kH2016Line := f_l00kUpdateVerticalLine(l00kH2016Line, l00kHalving2016, l00kBtcHalvingColor, l00kBtcEventLineWidth, l00kHalvingsVisible)
-    l00kH2020Line := f_l00kUpdateVerticalLine(l00kH2020Line, l00kHalving2020, l00kBtcHalvingColor, l00kBtcEventLineWidth, l00kHalvingsVisible)
-    l00kH2024Line := f_l00kUpdateVerticalLine(l00kH2024Line, l00kHalving2024, l00kBtcHalvingColor, l00kBtcEventLineWidth, l00kHalvingsVisible)
+    int l00kNextHalvingEstimate = l00kHalving2040Estimate
+    string l00kNextHalvingYear = "2040"
 
-    l00kH2012Label := f_l00kUpdateVerticalLabel(l00kH2012Label, l00kHalving2012, "BTC Halving\n2012", l00kBtcHalvingColor, color.white, l00kHalvingsVisible and l00kBtcLabelsVisible, l00kBtcEventLabelY)
-    l00kH2016Label := f_l00kUpdateVerticalLabel(l00kH2016Label, l00kHalving2016, "BTC Halving\n2016", l00kBtcHalvingColor, color.white, l00kHalvingsVisible and l00kBtcLabelsVisible, l00kBtcEventLabelY)
-    l00kH2020Label := f_l00kUpdateVerticalLabel(l00kH2020Label, l00kHalving2020, "BTC Halving\n2020", l00kBtcHalvingColor, color.white, l00kHalvingsVisible and l00kBtcLabelsVisible, l00kBtcEventLabelY)
-    l00kH2024Label := f_l00kUpdateVerticalLabel(l00kH2024Label, l00kHalving2024, "BTC Halving\n2024", l00kBtcHalvingColor, color.white, l00kHalvingsVisible and l00kBtcLabelsVisible, l00kBtcEventLabelY)
+    if timenow < l00kHalving2028Estimate
+        l00kNextHalvingEstimate := l00kHalving2028Estimate
+        l00kNextHalvingYear := "2028"
+    else if timenow < l00kHalving2032Estimate
+        l00kNextHalvingEstimate := l00kHalving2032Estimate
+        l00kNextHalvingYear := "2032"
+    else if timenow < l00kHalving2036Estimate
+        l00kNextHalvingEstimate := l00kHalving2036Estimate
+        l00kNextHalvingYear := "2036"
 
-    l00kBtcAth2013Line := f_l00kUpdateVerticalLine(l00kBtcAth2013Line, l00kBtcAth2013, l00kBtcAthColor, l00kBtcEventLineWidth, l00kBtcAthsVisible)
-    l00kBtcAth2017Line := f_l00kUpdateVerticalLine(l00kBtcAth2017Line, l00kBtcAth2017, l00kBtcAthColor, l00kBtcEventLineWidth, l00kBtcAthsVisible)
-    l00kBtcAth2021Line := f_l00kUpdateVerticalLine(l00kBtcAth2021Line, l00kBtcAth2021, l00kBtcAthColor, l00kBtcEventLineWidth, l00kBtcAthsVisible)
-    l00kBtcAth2025Line := f_l00kUpdateVerticalLine(l00kBtcAth2025Line, l00kBtcAth2025, l00kBtcAthColor, l00kBtcEventLineWidth, l00kBtcAthsVisible)
+    l00kH2012Line := f_l00kUpdateVerticalLine(l00kH2012Line, l00kHalving2012, l00kBtcHalvingLineColor, l00kBtcEventLineWidth, l00kHalvingsVisible)
+    l00kH2016Line := f_l00kUpdateVerticalLine(l00kH2016Line, l00kHalving2016, l00kBtcHalvingLineColor, l00kBtcEventLineWidth, l00kHalvingsVisible)
+    l00kH2020Line := f_l00kUpdateVerticalLine(l00kH2020Line, l00kHalving2020, l00kBtcHalvingLineColor, l00kBtcEventLineWidth, l00kHalvingsVisible)
+    l00kH2024Line := f_l00kUpdateVerticalLine(l00kH2024Line, l00kHalving2024, l00kBtcHalvingLineColor, l00kBtcEventLineWidth, l00kHalvingsVisible)
+    l00kHNextEstimateLine := f_l00kUpdateVerticalLine(l00kHNextEstimateLine, l00kNextHalvingEstimate, l00kBtcHalvingLineColor, l00kBtcEventLineWidth, l00kHalvingsVisible)
 
-    l00kBtcAth2013Label := f_l00kUpdateVerticalLabel(l00kBtcAth2013Label, l00kBtcAth2013, "BTC ATH\n2013", l00kBtcAthColor, color.black, l00kBtcAthsVisible and l00kBtcLabelsVisible, l00kBtcEventLabelY)
-    l00kBtcAth2017Label := f_l00kUpdateVerticalLabel(l00kBtcAth2017Label, l00kBtcAth2017, "BTC ATH\n2017", l00kBtcAthColor, color.black, l00kBtcAthsVisible and l00kBtcLabelsVisible, l00kBtcEventLabelY)
-    l00kBtcAth2021Label := f_l00kUpdateVerticalLabel(l00kBtcAth2021Label, l00kBtcAth2021, "BTC ATH\n2021", l00kBtcAthColor, color.black, l00kBtcAthsVisible and l00kBtcLabelsVisible, l00kBtcEventLabelY)
-    l00kBtcAth2025Label := f_l00kUpdateVerticalLabel(l00kBtcAth2025Label, l00kBtcAth2025, "BTC ATH\n2025", l00kBtcAthColor, color.black, l00kBtcAthsVisible and l00kBtcLabelsVisible, l00kBtcEventLabelY)
+    l00kH2012Label := f_l00kUpdateVerticalLabel(l00kH2012Label, l00kHalving2012, "BTC Halving\n2012", l00kBtcHalvingLabelColor, color.white, l00kHalvingsVisible and l00kBtcLabelsVisible, l00kBtcEventLabelY)
+    l00kH2016Label := f_l00kUpdateVerticalLabel(l00kH2016Label, l00kHalving2016, "BTC Halving\n2016", l00kBtcHalvingLabelColor, color.white, l00kHalvingsVisible and l00kBtcLabelsVisible, l00kBtcEventLabelY)
+    l00kH2020Label := f_l00kUpdateVerticalLabel(l00kH2020Label, l00kHalving2020, "BTC Halving\n2020", l00kBtcHalvingLabelColor, color.white, l00kHalvingsVisible and l00kBtcLabelsVisible, l00kBtcEventLabelY)
+    l00kH2024Label := f_l00kUpdateVerticalLabel(l00kH2024Label, l00kHalving2024, "BTC Halving\n2024", l00kBtcHalvingLabelColor, color.white, l00kHalvingsVisible and l00kBtcLabelsVisible, l00kBtcEventLabelY)
+    l00kHNextEstimateLabel := f_l00kUpdateVerticalLabel(l00kHNextEstimateLabel, l00kNextHalvingEstimate, "BTC Halving\n" + l00kNextHalvingYear + " est.", l00kBtcHalvingLabelColor, color.white, l00kHalvingsVisible and l00kBtcLabelsVisible, l00kBtcEventLabelY)
+
+    l00kBtcAth2013Line := f_l00kUpdateVerticalLine(l00kBtcAth2013Line, l00kBtcAth2013, l00kBtcAthLineColor, l00kBtcEventLineWidth, l00kBtcAthsVisible)
+    l00kBtcAth2017Line := f_l00kUpdateVerticalLine(l00kBtcAth2017Line, l00kBtcAth2017, l00kBtcAthLineColor, l00kBtcEventLineWidth, l00kBtcAthsVisible)
+    l00kBtcAth2021Line := f_l00kUpdateVerticalLine(l00kBtcAth2021Line, l00kBtcAth2021, l00kBtcAthLineColor, l00kBtcEventLineWidth, l00kBtcAthsVisible)
+    l00kBtcAth2025Line := f_l00kUpdateVerticalLine(l00kBtcAth2025Line, l00kBtcAth2025, l00kBtcAthLineColor, l00kBtcEventLineWidth, l00kBtcAthsVisible)
+
+    l00kBtcAth2013Label := f_l00kUpdateVerticalLabel(l00kBtcAth2013Label, l00kBtcAth2013, "BTC ATH\n2013", l00kBtcAthLabelColor, color.black, l00kBtcAthsVisible and l00kBtcLabelsVisible, l00kBtcEventLabelY)
+    l00kBtcAth2017Label := f_l00kUpdateVerticalLabel(l00kBtcAth2017Label, l00kBtcAth2017, "BTC ATH\n2017", l00kBtcAthLabelColor, color.black, l00kBtcAthsVisible and l00kBtcLabelsVisible, l00kBtcEventLabelY)
+    l00kBtcAth2021Label := f_l00kUpdateVerticalLabel(l00kBtcAth2021Label, l00kBtcAth2021, "BTC ATH\n2021", l00kBtcAthLabelColor, color.black, l00kBtcAthsVisible and l00kBtcLabelsVisible, l00kBtcEventLabelY)
+    l00kBtcAth2025Label := f_l00kUpdateVerticalLabel(l00kBtcAth2025Label, l00kBtcAth2025, "BTC ATH\n2025", l00kBtcAthLabelColor, color.black, l00kBtcAthsVisible and l00kBtcLabelsVisible, l00kBtcEventLabelY)
